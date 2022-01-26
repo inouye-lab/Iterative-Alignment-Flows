@@ -6,11 +6,9 @@
 
 Our models are based on scikit-learn and PyTorch.
 
-## Modules
+## Requirements
 
-It is not required to install other modules to run our codes.
-
-Folder weakflow, ddl, SINF and python files in the main folder include necessary functions to implement our experiments.
+ddl can be found in the submodule destructive-deep-learning
 
 ## Implementation
 
