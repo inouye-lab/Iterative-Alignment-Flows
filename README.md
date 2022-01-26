@@ -1,6 +1,8 @@
 # Iterative Alignment Flows
 
+## Reference
 
+This is the official implementation of [Iterative Alignment Flows]([[2104.07232\] Iterative Alignment Flows (arxiv.org)](https://arxiv.org/abs/2104.07232#:~:text=The unsupervised task of aligning,mitigation%2C and unsupervised domain adaptation.)). 
 
 ## Installation
 
