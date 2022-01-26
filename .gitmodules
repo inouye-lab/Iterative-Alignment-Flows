@@ -1,0 +1,3 @@
+[submodule "destructive-deep-learning"]
+	path = destructive-deep-learning
+	url = https://github.com/davidinouye/destructive-deep-learning.git
