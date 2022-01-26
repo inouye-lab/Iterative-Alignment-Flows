@@ -21,6 +21,3 @@ For each experiment of SINF, there is a separate demo.
 demo_convergence_2D.ipynb is a separate notebook for Figure1.(e) in the main paper.
 
 As for the implementation of AlignFlow experiment, please read the README.md file in the folder alignflow.
-
-(Some outputs are cleared for anonymity and space limit)
-

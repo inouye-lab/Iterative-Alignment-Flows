@@ -6,8 +6,10 @@ import itertools
 
 
 def transport_cost(X, Z, y, weight=None):
-    # Evaluate Transporation Cost
-
+    '''
+    Evaluate Transporation Cost
+    '''
+    
     X = torch.Tensor(X)
     Z = torch.Tensor(Z)
     classes = unique_labels(y)
@@ -35,10 +37,11 @@ def transport_cost(X, Z, y, weight=None):
     return cost.item()
 
 
-# Evaluate the 2-Wasserstein Distance using Sinkhorn Iterations
-
-# Latent Space for k=2 and k>2
 def wd_sinkhorn(Z, y, weight= None):
+    '''
+    Evaluate the 2-Wasserstein Distance in the latent space using Sinkhorn Iterations 
+    Designed for computing WD when input Z are samples from shared distributions transformed from each class
+    '''
     
     Z = torch.Tensor(Z)
     sinkhorn = SinkhornDistance(eps=0.1, max_iter=100)
@@ -61,10 +64,14 @@ def wd_sinkhorn(Z, y, weight= None):
     wd = wd/ n_scale
     return wd
 
-# Original Space k=2
+
 def wd_average(X, Z, y, n_samples, weight = None): 
-    # X - original X
-    # Z - flipped X
+    """  
+    Number of classes k=2  
+    Evaluate the 2-Wasserstein Distance in the original space space using Sinkhorn Iterations 
+    X -- original distribution
+    Z -- flipped distribution (in the original space)
+    """    
 
     X = torch.Tensor(X)
     Z = torch.Tensor(Z)
@@ -89,10 +96,11 @@ def wd_average(X, Z, y, n_samples, weight = None):
 
     return wd
 
-# Original Space k>2
 def wd_original(X, Xflipall, y, key, weight = None):
     """
-    X: original data
+    Number of classes k>2
+    Evaluate the 2-Wasserstein Distance in the original space space using Sinkhorn Iterations 
+    X -- original distribution
     Xflipall: dictionary that contains flipped X from all the other classes. The key of Xflipall 
               represents which X_i it is from
     """
@@ -123,8 +131,9 @@ def wd_original(X, Xflipall, y, key, weight = None):
 
 
 class SinkhornDistance(nn.Module):
-    # from https://github.com/dfdazac/wassdistance/blob/master/layers.py
     r"""
+    from https://github.com/dfdazac/wassdistance/blob/master/layers.py
+
     Given two empirical measures each with :math:`P_1` locations
     :math:`x\in\mathbb{R}^{D_1}` and :math:`P_2` locations :math:`y\in\mathbb{R}^{D_2}`,
     outputs an approximation of the regularized OT cost for point clouds.

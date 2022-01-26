@@ -74,9 +74,11 @@ def load_data(data_name, class_list = [0,1], test_size=1000):
     return X_train, X_test, y_train, y_test
 
 
- 
-# Image plotting function
+
 def plot_images(X, input_size=(1, 28, 28), fig_height=4, title=None, ylabel=None, vmin=-1, vmax=0):
+    '''
+    Image plotting function
+    '''
     n_images = X.shape[0]
     fig, axes = plt.subplots(1, n_images, figsize=(fig_height * n_images, fig_height))
     if n_images == 1:
@@ -92,17 +94,23 @@ def plot_images(X, input_size=(1, 28, 28), fig_height=4, title=None, ylabel=None
 
 
 
-# wrap cdf and inverse cdf of normal distribution
-def wrap_transform(est):
 
+def wrap_transform(est):
+    '''
+    Wrap cdf and inverse cdf of normal distribution
+    '''
     std_inverse = IndependentInverseCdf()
     std_normal = IndependentDestructor(IndependentDensity(ScipyUnivariateDensity(
         scipy_rv=scipy.stats.norm, scipy_fit_kwargs=dict(floc=0, fscale=1)
     )))
     return CompositeDestructor([std_inverse, est, std_normal])
 
-# create deep density destructors
+
+
 def create_deep_density_cd(n_canonical_destructors):
+    '''
+    create deep density destructors
+    '''
     copula_destructor = CompositeDestructor([
         IndependentDestructor(IndependentDensity(HistogramUnivariateDensity(
             bins=40, bounds=[0, 1], alpha=100))),
@@ -123,9 +131,11 @@ def create_deep_density_cd(n_canonical_destructors):
         random_state=np.random.RandomState(0), # Random state set for all estimators
     )
 
-# create deep tree destructors
+
 def create_deep_tree_cd(n_canonical_destructors, max_leaf_nodes = 10, uniform_weight = 0.9, track_marginals = False):
-    
+    '''
+    create deep tree destructors
+    '''
     std_inverse = IndependentInverseCdf()
     std_normal = IndependentDestructor(IndependentDensity(ScipyUnivariateDensity(
         scipy_rv=scipy.stats.norm, scipy_fit_kwargs=dict(floc=0, fscale=1)

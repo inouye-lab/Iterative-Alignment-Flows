@@ -16,7 +16,135 @@ from ddl.univariate import HistogramUnivariateDensity
 from ddl.linear import LinearProjector
 
 
+
+class NaiveBaryMultiClassifierDestructor(ClassifierDestructor):
+    '''
+    Building blocks for Iterative Naive Barycenter (INB)
+    '''
+    def __init__(self, hist_bins='auto', n_grid=100, bound_eps='auto', weight=None):
+        self.hist_bins = hist_bins
+        self.n_grid = n_grid
+        self.bound_eps = bound_eps
+        self.weight = weight
+    
+    def _fit_conditional_transform(self, X, y=None):
+        # fit independent destructor for each class
+
+        X, y = check_X_y(X, y)
+        classes = unique_labels(y)
+        
+        # Setup independent density destructor
+        bins = self.hist_bins
+        if bins == 'auto':
+            bins = int(np.round(np.sqrt(X.shape[0])))
+        ind = CompositeDestructor([
+            IndependentDestructor(), # Gaussian
+            IndependentDestructor(IndependentDensity(
+                HistogramUnivariateDensity(bins=bins, bounds=[0,1])
+            ))
+        ])
+        
+        # Fit independent destructor for each class 
+        # which can destroy the data to uniform distribution
+        fitted_class_transformers = []
+        for i, yy in enumerate(classes):
+            d = clone(ind)
+            d.fit(X[y==yy, :])
+            fitted_class_transformers.append(d)
+            
+        # Save for post_transform
+        self.conditional_transformer_ = ConditionalTransformer.create_fitted(fitted_class_transformers, classes)
+        return self.conditional_transformer_
+    
+    def _fit_post_transform(self, X, y=None):
+        #assert len(self.conditional_transformer_.classes_) == 2, 'Only 2 classes is implemented'
+        classes = unique_labels(y)
+        n_classes = len(classes)
+        n_features = X.shape[1]
+        weight = self.weight
+        if weight is None:
+            weight = np.ones((1,n_classes)) / n_classes
+        assert weight.shape[0] == 1
+
+        X = check_array(X)
+        n_features = X.shape[1]
+        X = None # Only need X for n_features
+        d_bary_inv = _get_ind_bary_inv_transformer(
+            self.conditional_transformer_, self.n_grid, 
+            self.bound_eps, n_features, weight, is_unit_bounded=False)
+        self.post_transformer_ = d_bary_inv
+        return self.post_transformer_
+    
+
+def _get_ind_bary_inv_transformer(conditional_transformer, n_grid, bound_eps, 
+                                 n_features, weight, is_unit_bounded=False,):
+    # -- Construct barycenter transform via McCann's interpolation
+    # Start by finding quantiles all features
+    # Quantiles bounded away from 0 and 1
+    # Go in both directions via inverse transforms
+    if bound_eps == 'auto':
+        bound_eps = 1/n_grid
+
+
+    # transform the histogram using the inverse transform just fitted for 
+    # each class and take the average
+    # based on default, 0.005, 0.015,... 0.995 shape = (100,)
+    u_bary = np.linspace(-0.5, 0.5, n_grid) * (1-bound_eps) + 0.5
+    # based on result above, make a grid shape = (100,n_features)
+    U_bary = np.outer(u_bary, np.ones(n_features))
+    # shape = (n_classes, 100, n_features)
+    X_query_per_class = np.array([
+        t.inverse_transform(U_bary)
+        for t in conditional_transformer.fitted_class_transformers_
+    ])
+    # average over classes
+    #X_bary = np.mean(X_query_per_class, axis=0) # 
+    X_bary = torch.zeros(X_query_per_class.shape[1], X_query_per_class.shape[2])
+    for i,t in enumerate(X_query_per_class):
+        X_bary += weight[0,i] * t
+
+    if not is_unit_bounded:
+        # Use Gaussian pre-destructor to handle tails
+        normal_destructor = IndependentDestructor().fit(X_bary)
+        X_bary = normal_destructor.transform(X_bary)
+
+    #it the density of barycenter 
+    # Form pseudo-histogram for d_bary that will serve as interpolation
+    fitted = []
+    # for each row
+    for xb, ub in zip(X_bary.T, U_bary.T):  # each feature independently
+        # hist should be pseudo-counts/mass (i.e., not density values)
+        #  HistogramUnivariateDensity.create_fitted accounts for bin_edges
+        # assign weight/mass for each bin
+        hist = np.concatenate(([bound_eps/2], np.diff(ub), [bound_eps/2]))  # Mass in each bin is like spacing between u_bary
+        d_hist = HistogramUnivariateDensity.create_fitted(
+            hist, bin_edges=np.concatenate(([0], xb, [1]))) 
+        fitted.append(d_hist)
+
+    #fine the destructor based on the density just found 
+    # Create independent destructor and invert
+    ind_fitted = IndependentDensity.create_fitted(fitted, n_features=n_features)
+    d_hist_bary = IndependentDestructor.create_fitted(ind_fitted)
+    if not is_unit_bounded:
+        d_bary = CompositeDestructor.create_fitted([
+            normal_destructor,
+            d_hist_bary,
+        ])
+    else:
+        d_bary = d_hist_bary
+    d_bary.n_features_ = n_features
+    d_bary_inv = create_inverse_transformer(d_bary)
+    return d_bary_inv
+
+
+
+
+
+
 class GaussianBaryMultiClassifierDestructor(ClassifierDestructor):
+    '''
+    Building blocks for Gaussian Barycenter (GB)
+    '''
 
     def __init__(self, n_iters =20, weight = None, mode=1, verbosity = 0):
 
@@ -147,119 +275,3 @@ class GaussianBaryMultiClassifierDestructor(ClassifierDestructor):
         d_bary_inv = create_inverse_transformer(d_bary)
         return d_bary_inv
 
-class NaiveBaryMultiClassifierDestructor(ClassifierDestructor):
-    
-    def __init__(self, hist_bins='auto', n_grid=100, bound_eps='auto', weight=None):
-        self.hist_bins = hist_bins
-        self.n_grid = n_grid
-        self.bound_eps = bound_eps
-        self.weight = weight
-    
-    def _fit_conditional_transform(self, X, y=None):
-        # fit independent destructor for each class
-
-        X, y = check_X_y(X, y)
-        classes = unique_labels(y)
-        
-        # Setup independent density destructor
-        bins = self.hist_bins
-        if bins == 'auto':
-            bins = int(np.round(np.sqrt(X.shape[0])))
-        ind = CompositeDestructor([
-            IndependentDestructor(), # Gaussian
-            IndependentDestructor(IndependentDensity(
-                HistogramUnivariateDensity(bins=bins, bounds=[0,1])
-            ))
-        ])
-        
-        # Fit independent destructor for each class 
-        # which can destroy the data to uniform distribution
-        fitted_class_transformers = []
-        for i, yy in enumerate(classes):
-            d = clone(ind)
-            d.fit(X[y==yy, :])
-            fitted_class_transformers.append(d)
-            
-        # Save for post_transform
-        self.conditional_transformer_ = ConditionalTransformer.create_fitted(fitted_class_transformers, classes)
-        return self.conditional_transformer_
-    
-    def _fit_post_transform(self, X, y=None):
-        #assert len(self.conditional_transformer_.classes_) == 2, 'Only 2 classes is implemented'
-        classes = unique_labels(y)
-        n_classes = len(classes)
-        n_features = X.shape[1]
-        weight = self.weight
-        if weight is None:
-            weight = np.ones((1,n_classes)) / n_classes
-        assert weight.shape[0] == 1
-
-        X = check_array(X)
-        n_features = X.shape[1]
-        X = None # Only need X for n_features
-        d_bary_inv = _get_ind_bary_inv_transformer(
-            self.conditional_transformer_, self.n_grid, 
-            self.bound_eps, n_features, weight, is_unit_bounded=False)
-        self.post_transformer_ = d_bary_inv
-        return self.post_transformer_
-    
-
-def _get_ind_bary_inv_transformer(conditional_transformer, n_grid, bound_eps, 
-                                 n_features, weight, is_unit_bounded=False,):
-    # -- Construct barycenter transform via McCann's interpolation
-    # Start by finding quantiles all features
-    # Quantiles bounded away from 0 and 1
-    # Go in both directions via inverse transforms
-    if bound_eps == 'auto':
-        bound_eps = 1/n_grid
-
-
-    # transform the histogram using the inverse transform just fitted for 
-    # each class and take the average
-    # based on default, 0.005, 0.015,... 0.995 shape = (100,)
-    u_bary = np.linspace(-0.5, 0.5, n_grid) * (1-bound_eps) + 0.5
-    # based on result above, make a grid shape = (100,n_features)
-    U_bary = np.outer(u_bary, np.ones(n_features))
-    # shape = (n_classes, 100, n_features)
-    X_query_per_class = np.array([
-        t.inverse_transform(U_bary)
-        for t in conditional_transformer.fitted_class_transformers_
-    ])
-    # average over classes
-    #X_bary = np.mean(X_query_per_class, axis=0) # 
-    X_bary = torch.zeros(X_query_per_class.shape[1], X_query_per_class.shape[2])
-    for i,t in enumerate(X_query_per_class):
-        X_bary += weight[0,i] * t
-
-    if not is_unit_bounded:
-        # Use Gaussian pre-destructor to handle tails
-        normal_destructor = IndependentDestructor().fit(X_bary)
-        X_bary = normal_destructor.transform(X_bary)
-
-    #it the density of barycenter 
-    # Form pseudo-histogram for d_bary that will serve as interpolation
-    fitted = []
-    # for each row
-    for xb, ub in zip(X_bary.T, U_bary.T):  # each feature independently
-        # hist should be pseudo-counts/mass (i.e., not density values)
-        #  HistogramUnivariateDensity.create_fitted accounts for bin_edges
-        # assign weight/mass for each bin
-        hist = np.concatenate(([bound_eps/2], np.diff(ub), [bound_eps/2]))  # Mass in each bin is like spacing between u_bary
-        d_hist = HistogramUnivariateDensity.create_fitted(
-            hist, bin_edges=np.concatenate(([0], xb, [1]))) 
-        fitted.append(d_hist)
-
-    #fine the destructor based on the density just found 
-    # Create independent destructor and invert
-    ind_fitted = IndependentDensity.create_fitted(fitted, n_features=n_features)
-    d_hist_bary = IndependentDestructor.create_fitted(ind_fitted)
-    if not is_unit_bounded:
-        d_bary = CompositeDestructor.create_fitted([
-            normal_destructor,
-            d_hist_bary,
-        ])
-    else:
-        d_bary = d_hist_bary
-    d_bary.n_features_ = n_features
-    d_bary_inv = create_inverse_transformer(d_bary)
-    return d_bary_inv

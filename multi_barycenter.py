@@ -13,10 +13,12 @@ from ddl.univariate import ScipyUnivariateDensity
 from weakflow._tree import TreeDensity, DecisionTreeClassifier, TreeClassifierDestructor
 from SWD import multimaxSWDdirection
 
-
-# max Sliced Wasserstein Distance Barycenter Classifier Destructor
+# The main part of codes for creating our model such as INB in the paper when the number of classes k>2
+ 
 class MSWDBaryClassifierDestructor(nn.Module):
-    
+    """
+    Iterative Alignment Flows (IAF) when k>2
+    """
     def __init__(self):
 
         super().__init__()
@@ -95,9 +97,10 @@ class MSWDBaryClassifierDestructor(nn.Module):
 
 
 class MSWDBary(nn.Module):
-
-    # mSWD based destructor
-
+    """
+    Building blocks for IAF
+    Each instance is one layer/iteration in IAF
+    """
     def __init__(self, nfeatures, ndim, bary_type):
         # nfeatures - dimensions in original space
         # ndim - dimensions after projection
@@ -174,9 +177,9 @@ class MSWDBary(nn.Module):
 
 
 class OriginalBary(nn.Module):
-
-    # classifier destructor without projection
-    
+    """
+    Wasserstein Barycenter Map without projection e.g. NB in the paper
+    """
     def __init__(self, bary_type):
         super().__init__()
         self.bary_type = bary_type
@@ -210,7 +213,9 @@ class OriginalBary(nn.Module):
 
 
 def add_one_layer(model, X, y, bary_type, ndim, rand=False):
-
+    """
+    Add one layer to IAF
+    """
     X = torch.Tensor(X)
     nfeatures = X.shape[1]
 

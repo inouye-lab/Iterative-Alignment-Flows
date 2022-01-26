@@ -3,9 +3,11 @@ import torch.nn as nn
 from ddl.independent import IndependentDensity, IndependentDestructor, IndependentInverseCdf
 from ddl.univariate import ScipyUnivariateDensity
 
-
+# Used for pre and post processing data
 class GaussianInverseCDF(nn.Module):
-    # Wrap scikit-learn based method in Pytorch form
+    '''
+    Wrap scikit-learn based method in Pytorch form
+    '''
     def __init__(self):
 
         super().__init__()
@@ -31,7 +33,9 @@ class GaussianInverseCDF(nn.Module):
         return Z
 
 class GaussianCDF(nn.Module):
-    # Wrap scikit-learn based method in Pytorch form
+    '''
+    Wrap scikit-learn based method in Pytorch form
+    '''
     def __init__(self):
 
         super().__init__()

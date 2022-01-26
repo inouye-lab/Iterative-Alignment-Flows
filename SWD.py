@@ -3,10 +3,14 @@ import numpy as np
 from sklearn.utils.multiclass import unique_labels
 import itertools
 
+# Codes in this file are modified based on https://github.com/biweidai/SINF/blob/master/sinf/SlicedWasserstein.py
+# Though we used the old version of their implementation
+# The link to their old repository is listed below (Update: it has expired)
 
 def SlicedWassersteinDistance(x, x2, q, p, perdim=True):
-
-    # modified from https://github.com/biweidai/SIG_GIS/blob/master/SlicedWasserstein.py
+    '''
+    Modified from https://github.com/biweidai/SIG_GIS/blob/master/SlicedWasserstein.py
+    '''
     px = torch.sort(x, dim=-1)[0]
     px2 = torch.sort(x2, dim=-1)[0]
 
@@ -18,9 +22,9 @@ def SlicedWassersteinDistance(x, x2, q, p, perdim=True):
 
 
 def maxSWDdirection(x, x2, n_component=None, maxiter=200, Npercentile=None, p=2, eps=1e-6):
-
-    # modified from https://github.com/biweidai/SIG_GIS/blob/master/SlicedWasserstein.py
-
+    '''
+    Modified from https://github.com/biweidai/SIG_GIS/blob/master/SlicedWasserstein.py
+    '''
     assert x.shape[0] == x2.shape[0]
     assert x.shape[1] == x2.shape[1]
     
@@ -81,10 +85,10 @@ def maxSWDdirection(x, x2, n_component=None, maxiter=200, Npercentile=None, p=2,
 
 
 def barySlicedWassersteinDistance(w, x_dict, q, p, n_classes, perdim=True):
-
-    # modified from https://github.com/biweidai/SIG_GIS/blob/master/SlicedWasserstein.py
-    # prepare for calculating distance for k>2
-    
+    '''
+    Modified from https://github.com/biweidai/SIG_GIS/blob/master/SlicedWasserstein.py
+    Designed for calculating distance for k>2
+    '''
     for i, x in enumerate(x_dict.values()):
         if i == 0:
             bary = torch.sort(w @ x.T, dim=-1)[0]
@@ -109,8 +113,10 @@ def barySlicedWassersteinDistance(w, x_dict, q, p, n_classes, perdim=True):
 
 def multimaxSWDdirection(X, y, n_component=None, maxiter=200, Npercentile=None, p=2, eps=1e-6, weight=None):
 
-    # modified from https://github.com/biweidai/SIG_GIS/blob/master/SlicedWasserstein.py
-
+    '''
+    Modified from https://github.com/biweidai/SIG_GIS/blob/master/SlicedWasserstein.py
+    Designed for calculating distance for k>2
+    '''
     # unifrom weight if no weight is assigned
     classes = unique_labels(y)
     n_classes = len(classes)
