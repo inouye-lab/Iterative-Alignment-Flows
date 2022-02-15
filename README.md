@@ -1,8 +1,6 @@
 # Iterative Alignment Flows
 
-## Reference
 
-This is the official implementation of [Iterative Alignment Flows](https://arxiv.org/abs/2104.07232)
 
 ## Installation
 
@@ -18,7 +16,18 @@ Folder demos include several notebooks that implement our experiments. To run th
 
 demo_convergence_2D.ipynb is a separate notebook for Figure1.(e) in the main paper.
 
+## Reference
 
+If you find this code helpful, we would be grateful if you cite the following 
+
+```markdown
+@inproceedings{zhou2022align,
+  title = { Iterative Alignment Flows },
+  author = {Zhou, Zeyu and Gong, Ziyu and Ravikumar, Pradeep and Inouye, David I.},
+  booktitle = {Proceedings of The 24th International Conference on Artificial Intelligence and Statistics},
+  year = {2022}
+}
+```
 
 ## Update
 
