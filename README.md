@@ -24,7 +24,7 @@ If you find this code helpful, we would be grateful if you cite the following
 @inproceedings{zhou2022align,
   title = { Iterative Alignment Flows },
   author = {Zhou, Zeyu and Gong, Ziyu and Ravikumar, Pradeep and Inouye, David I.},
-  booktitle = {Proceedings of The 24th International Conference on Artificial Intelligence and Statistics},
+  booktitle = {Proceedings of The 25th International Conference on Artificial Intelligence and Statistics},
   year = {2022}
 }
 ```
