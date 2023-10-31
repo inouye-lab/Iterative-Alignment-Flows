@@ -1,6 +1,7 @@
 # Iterative Alignment Flows
 
-
+## Note
+For a more efficient implementation that supports GPU acceleration, please see this [repo](https://github.com/inouye-lab/fedinb).
 
 ## Installation
 
